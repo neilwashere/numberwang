@@ -1,5 +1,7 @@
 # numberwang
 
+![wang](https://media2.giphy.com/media/Z9ldUiEOCtdeM/200_s.gif)
+
 Given a number between 0 and 1000 inclusive, return a grammatically correct english sentence.
 
     10 -> ten
@@ -23,12 +25,13 @@ This was hobbled together pretty quickly. It uses an alpha release of clojure 1.
 
 ## Todo
 
-* Add some (generative) tests
-
+* Add some generative tests!
+* Clean up logic to rely less on whitespace trimming
+* Have a rethink about the word library - I'm not sure I like it
 
 ## License
 
 Copyright © 2016 neilwashere
-oj
+
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
