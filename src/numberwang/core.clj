@@ -1,18 +1,21 @@
 (ns numberwang.core
-  (:require [clojure.spec :as s]))
+  (:require [clojure.spec :as s]
+            [clojure.string :as string]))
 
-(s/def ::input-boundary (s/int-in 0 2001))
+(s/check-asserts true)
+
+(s/def ::input-boundary (s/int-in 0 1001))
 (s/def ::input-text (s/and string? #(re-matches #"\d+" %)))
+(s/def ::positive-int (s/and int? #(>= % 0)))
 
-(defn exponent-tag
+(defn- exponent-tag
   [num]
   (condp #(>= %2 %1) num
     1000 " thousand"
     0 ""))
 
-(def number-word-map
-  {:natural {0  ""
-             1  "one"
+(def ^:private number-word-map
+  {:natural {1  "one"
              2  "two"
              3  "three"
              4  "four"
@@ -41,39 +44,47 @@
           9 "ninety"}})
 
 
-(defn wordify
-  ([units] (wordify units 0 0))
-  ([units tens] (wordify units tens 0))
+(defn- num->phrase
+  ([units] (num->phrase units 0 0))
+  ([units tens] (num->phrase units tens 0))
   ([units tens hundreds]
-   (let [base10       (+ units (* 10 tens))
-         tens-word    (if (<= base10 19 )
-                        (get (:natural number-word-map) base10)
-                        (format "%s %s" (get (:tens number-word-map) tens)
-                                (get (:natural number-word-map) units)))
-         hundred-word (when (> hundreds 0)
-                        (format "%s hundred" (get (:natural number-word-map) hundreds)))
-         builder (remove nil? [hundred-word
-                               (when (and hundred-word (> (count tens-word) 0))
-                                 "and")
-                               tens-word])]
-     (clojure.string/join " " builder))))
+   (let [base10        (+ units (* 10 tens))
+
+         tens-word     (if (<= base10 19 )
+                         (get (:natural number-word-map) base10)
+                         (string/join " "
+                                      [(get (:tens number-word-map) tens)
+                                       (get (:natural number-word-map) units)]))
+
+         hundred-word  (when (> hundreds 0)
+                         (format "%s hundred" (get (:natural number-word-map) hundreds)))
+
+         number-phrase (remove nil? [hundred-word
+                                     (when (and hundred-word (> (count tens-word) 0))
+                                       "and")
+                                     tens-word])]
+     (string/trimr (string/join " " number-phrase)))))
+
 
 (defn number-word-walk
   [n]
-  (loop [result []
-         base 100
-         num (reverse n)]
-    (if (empty? num)
-      result
-      (let [dig-tup   (map read-string (map str (take 3 num)))
-            worded    (apply wordify dig-tup)
-            qualifier (exponent-tag base)]
-        (recur (cons (str worded qualifier) result)
-               (* base 10)
-               (drop 3 num))))))
+  {:pre [(s/valid? ::positive-int n)]}
+  (if (= 0 n)
+    "zero"
+    (loop [result []
+           base   100
+           num    (reverse (str n))]
+      (if (empty? num)
+        (string/trimr (string/join " " result))
+        (let [dig-tup   (map read-string (map str (take 3 num)))
+              worded    (apply num->phrase dig-tup)
+              qualifier (exponent-tag base)]
+          (recur (cons (str worded qualifier) result)
+                 (* base 10)
+                 (drop 3 num)))))))
 
 (defn -main
-  [^String num]
-  {:pre [(s/valid? ::input-text num)
-         (s/valid? ::input-boundary (read-string num))]}
-  (println (clojure.string/join " " (number-word-walk num))))
+  [num]
+  {:pre [(s/valid? ::input-text num)]}
+  (let [n (s/assert ::input-boundary (read-string num))]
+    (println (number-word-walk n))))
