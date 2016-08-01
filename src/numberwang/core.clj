@@ -4,9 +4,10 @@
 
 (s/check-asserts true)
 
-(s/def ::input-boundary (s/int-in 0 1001))
+(s/def ::input-boundary (s/int-in 0 20001))
 (s/def ::input-text (s/and string? #(re-matches #"\d+" %)))
 (s/def ::positive-int (s/and int? #(>= % 0)))
+(s/def ::digit (s/int-in 0 10))
 
 (defn- exponent-tag
   [num]
@@ -43,6 +44,16 @@
           8 "eighty"
           9 "ninety"}})
 
+(s/fdef num->phrase
+  :args (s/cat :units ::digit :tens ::digit :hundreds ::digit)
+  :ret string?
+  :fn #(let [base10 (+ (-> % :args :units) (* 10 (-> % :args :units)))]
+         (when (and (<= base10 19) (> base10 0))
+           (string/includes? (:ret %) (get (:natural number-word-map) base10)))
+         (when (and (= base10 0) (> (-> & :args :hundreds) 0))
+           (re-matches #".* hundred$" (:ret %)))
+         (when (and (> base10 0) (> (-> % :args :hundreds) 0))
+           (re-matches #".* hundred and .*" (:ret %)))))
 
 (defn- num->phrase
   ([units] (num->phrase units 0 0))
@@ -52,17 +63,17 @@
 
          tens-word     (if (<= base10 19 )
                          (get (:natural number-word-map) base10)
-                         (string/join " "
-                                      [(get (:tens number-word-map) tens)
-                                       (get (:natural number-word-map) units)]))
+                         (str (get (:tens number-word-map) tens)
+                              " "
+                              (get (:natural number-word-map) units)))
 
          hundred-word  (when (> hundreds 0)
                          (format "%s hundred" (get (:natural number-word-map) hundreds)))
 
-         number-phrase (remove nil? [hundred-word
-                                     (when (and hundred-word (> (count tens-word) 0))
-                                       "and")
-                                     tens-word])]
+         and-word      (when (and hundred-word (> (count tens-word) 0))
+                         "and")
+
+         number-phrase (remove nil? [hundred-word and-word tens-word])]
      (string/trimr (string/join " " number-phrase)))))
 
 

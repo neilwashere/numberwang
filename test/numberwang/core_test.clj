@@ -4,13 +4,16 @@
 
 ;; TODO - some generative testing
 (deftest number-word-walk
-  (testing "given a number number, it will produce hundred-base sentences"
+  (testing "given a positive integer, it will produce hundred-base sentences"
     (is (= "one thousand" (sut/number-word-walk 1000)))
     (is (= "one hundred" (sut/number-word-walk 100)))
     (is (= "one hundred and sixteen" (sut/number-word-walk 116)))
     (is (= "five hundred and twenty three" (sut/number-word-walk 523)))
     (is (= "twenty" (sut/number-word-walk 20)))
-    (is (= "zero" (sut/number-word-walk 0)))))
+    (is (= "zero" (sut/number-word-walk 0)))
+
+    (is (= "one thousand one hundred and two" (sut/number-word-walk 1102)))
+    (is (= "ten thousand and one" (sut/number-word-walk 10001)))))
 
 (deftest -main
   (testing "It will throw an error if the input is not a string of digits"
