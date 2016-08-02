@@ -48,12 +48,22 @@
   :args (s/cat :units ::digit :tens ::digit :hundreds ::digit)
   :ret string?
   :fn #(let [base10 (+ (-> % :args :units) (* 10 (-> % :args :units)))]
-         (when (and (<= base10 19) (> base10 0))
-           (string/includes? (:ret %) (get (:natural number-word-map) base10)))
-         (when (and (= base10 0) (> (-> & :args :hundreds) 0))
-           (re-matches #".* hundred$" (:ret %)))
-         (when (and (> base10 0) (> (-> % :args :hundreds) 0))
-           (re-matches #".* hundred and .*" (:ret %)))))
+         (s/or
+           :nothing      #(when (= (+ (:units %) (:tens %) (:hundreds %)) 0)
+                           (= "" (:ret %)))
+           :natural      #(when (and (<= base10 19) (> base10 0))
+                           (string/includes? (:ret %) (get (:natural number-word-map) base10))))
+           :tens         #(when (and (> (:tens %) 0) (= (:units %) 0))
+                           (string/includes? (:ret %) (get (:tens number-word-map) (:tens %))))
+           :tens-plus    #(when (and (> (:tens %) 0) (> (:units %) 0))
+                           (string/includes? (:ret %) (str
+                                                       (get (:tens number-word-map) (:tens %))
+                                                       " "
+                                                       (get (:units number-word-map) (:units %)))))
+           :hundred-only #(when (and (= base10 0) (> (-> % :args :hundreds) 0))
+                           (re-matches #".* hundred$" (:ret %)))
+           :hundred-and  #(when (and (> base10 0) (> (-> % :args :hundreds) 0))
+                           (re-matches #".* hundred and .*" (:ret %)))))
 
 (defn- num->phrase
   ([units] (num->phrase units 0 0))
